@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreetRavs - Share Your Ride, Share Your Story</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK for Phone Authentication -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    
+    <!-- Google Sign-In Library -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <style>
+        :root {
+            --primary: #FF4B1F;
+            --primary-dark: #E03A0F;
+            --secondary: #FF9068;
+            --accent: #FFE259;
+            --dark: #1A1A1A;
+            --gray: #2D2D2D;
+            --light-gray: #E5E5E5;
+            --white: #FFFFFF;
+            --success: #4CAF50;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, #2D2020 100%);
+            color: var(--white);
+            overflow-x: hidden;
+        }
+
+        /* Logo Design */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            position: relative;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .logo svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .logo-text {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 32px;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* Header */
+        header {
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 3px solid var(--primary);
+            box-shadow: 0 4px 20px rgba(255, 75, 31, 0.2);
+        }
+
+        nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 35px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        .cta-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            padding: 12px 30px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 75, 31, 0.3);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(255, 75, 31, 0.5);
+        }
+
+        /* Sign In Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: linear-gradient(135deg, var(--dark) 0%, var(--gray) 100%);
+            padding: 50px;
+            border-radius: 25px;
+            border: 3px solid var(--primary);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 450px;
+            width: 90%;
+            animation: slideDown 0.4s ease;
+            position: relative;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 30px;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--primary);
+        }
+
+        .modal h2 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 42px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .signin-option {
+            margin-bottom: 20px;
+        }
+
+        /* Google Sign-In Button Container */
+        #googleSignInDiv {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .phone-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .phone-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 75, 31, 0.5);
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .divider span {
+            background: var(--dark);
+            padding: 0 15px;
+            position: relative;
+            color: var(--light-gray);
+        }
+
+        .phone-input-section {
+            display: none;
+        }
+
+        .phone-input-section.active {
+            display: block;
+        }
+
+        .phone-input-group {
+            margin-bottom: 20px;
+        }
+
+        .phone-input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--light-gray);
+        }
+
+        .phone-input-group input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: var(--white);
+            font-size: 16px;
+        }
+
+        .phone-input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .submit-phone-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-phone-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 75, 31, 0.5);
+        }
+
+        #recaptcha-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* User Profile (After Sign In) */
+        .user-profile {
+            display: none;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-profile.active {
+            display: flex;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid var(--primary);
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        .logout-btn {
+            background: transparent;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        /* Hero Section */
+        .hero {
+            max-width: 1400px;
+            margin: 60px auto;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-content h1 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 72px;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--white) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: slideInLeft 0.8s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .hero-content p {
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            color: var(--light-gray);
+            animation: slideInLeft 0.8s ease-out 0.2s both;
+        }
+
+        .hero-features {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+            animation: slideInLeft 0.8s ease-out 0.4s both;
+        }
+
+        .feature-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 75, 31, 0.1);
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 2px solid var(--primary);
+        }
+
+        .feature-badge svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--primary);
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 20px;
+            animation: slideInLeft 0.8s ease-out 0.6s both;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            padding: 18px 40px;
+            border: none;
+            border-radius: 35px;
+            font-weight: 700;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 75, 31, 0.4);
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 75, 31, 0.6);
+        }
+
+        .secondary-btn {
+            background: transparent;
+            color: var(--white);
+            padding: 18px 40px;
+            border: 2px solid var(--white);
+            border-radius: 35px;
+            font-weight: 700;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .secondary-btn:hover {
+            background: var(--white);
+            color: var(--dark);
+        }
+
+        /* Booking Form */
+        .booking-form {
+            background: linear-gradient(135deg, rgba(255, 75, 31, 0.15) 0%, rgba(45, 32, 32, 0.5) 100%);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: slideInRight 0.8s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .booking-form h2 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 36px;
+            margin-bottom: 25px;
+            color: var(--primary);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+            color: var(--light-gray);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: var(--white);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .date-time-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--white);
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 75, 31, 0.5);
+        }
+
+        /* Map Section */
+        .map-section {
+            max-width: 1400px;
+            margin: 80px auto;
+            padding: 0 40px;
+        }
+
+        .map-section h2 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 56px;
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, var(--white) 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 3px solid var(--primary);
+            box-shadow: 0 15px 50px rgba(255, 75, 31, 0.3);
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Stats, How It Works, Footer - Same as before */
+        .stats {
+            max-width: 1400px;
+            margin: 80px auto;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 75, 31, 0.2) 0%, rgba(45, 32, 32, 0.4) 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 75, 31, 0.3);
+        }
+
+        .stat-number {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 56px;
+            color: var(--primary);
+            line-height: 1;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 18px;
+            color: var(--light-gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .how-it-works {
+            max-width: 1400px;
+            margin: 80px auto;
+            padding: 60px 40px;
+            background: linear-gradient(135deg, rgba(255, 75, 31, 0.1) 0%, rgba(45, 45, 45, 0.3) 100%);
+            border-radius: 30px;
+        }
+
+        .how-it-works h2 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 56px;
+            text-align: center;
+            margin-bottom: 60px;
+            color: var(--primary);
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 40px;
+        }
+
+        .step {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid rgba(255, 75, 31, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);
+        }
+
+        .step:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(255, 75, 31, 0.3);
+        }
+
+        .step-number {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 72px;
+            color: var(--primary);
+            opacity: 0.3;
+            line-height: 1;
+            margin-bottom: 15px;
+        }
+
+        .step h3 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: var(--white);
+        }
+
+        .step p {
+            color: var(--light-gray);
+            line-height: 1.6;
+        }
+
+        footer {
+            background: var(--dark);
+            padding: 60px 40px 30px;
+            margin-top: 80px;
+            border-top: 3px solid var(--primary);
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 40px;
+        }
+
+        .footer-about h3 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 32px;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+
+        .footer-about p {
+            color: var(--light-gray);
+            line-height: 1.6;
+        }
+
+        .footer-links h4 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--white);
+        }
+
+        .footer-links ul {
+            list-style: none;
+        }
+
+        .footer-links a {
+            color: var(--light-gray);
+            text-decoration: none;
+            line-height: 2;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary);
+        }
+
+        .footer-bottom {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--light-gray);
+        }
+
+        .success-message {
+            position: fixed;
+            top: 100px;
+            right: 40px;
+            background: linear-gradient(135deg, var(--success) 0%, #45a049 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.5s ease;
+            z-index: 2000;
+        }
+
+        .success-message.show {
+            transform: translateX(0);
+        }
+
+        .success-message h4 {
+            font-family: 'Bebas Neue', cursive;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+
+        /* Setup Instructions Banner */
+        .setup-banner {
+            background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1001;
+        }
+
+        .setup-banner a {
+            color: white;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 968px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .hero-content h1 {
+                font-size: 52px;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero-features {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .date-time-group {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .success-message {
+                right: 20px;
+                left: 20px;
+            }
+
+            .modal {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Setup Instructions Banner -->
+    <div class="setup-banner" id="setupBanner">
+        ⚙️ <strong>Setup Required:</strong> Add your Firebase & Google API keys in the JavaScript section below to enable real authentication & maps. <a href="#setup-instructions">See instructions ↓</a>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <nav>
+            <div class="logo-container">
+                <div class="logo">
+                    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M 10 90 Q 30 70, 50 50 T 90 10" stroke="#FF4B1F" stroke-width="8" fill="none" stroke-linecap="round"/>
+                        <path d="M 10 90 Q 30 70, 50 50 T 90 10" stroke="#FFE259" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.6"/>
+                        <circle cx="15" cy="85" r="8" fill="#FF4B1F"/>
+                        <circle cx="15" cy="85" r="4" fill="#FFE259"/>
+                        <circle cx="85" cy="15" r="8" fill="#FF4B1F"/>
+                        <circle cx="85" cy="15" r="4" fill="#FFE259"/>
+                        <g transform="translate(40, 35)">
+                            <rect x="0" y="5" width="20" height="10" rx="2" fill="#FFFFFF"/>
+                            <circle cx="5" cy="17" r="3" fill="#FF4B1F"/>
+                            <circle cx="15" cy="17" r="3" fill="#FF4B1F"/>
+                            <path d="M 3 5 L 6 0 L 14 0 L 17 5 Z" fill="#E5E5E5"/>
+                        </g>
+                    </svg>
+                </div>
+                <div class="logo-text">StreetRavs</div>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#rides">Find Rides</a></li>
+                <li><a href="#offer">Offer Ride</a></li>
+                <li><a href="#how">How It Works</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <button class="cta-btn" id="signInBtn">Sign In</button>
+            <div class="user-profile" id="userProfile">
+                <img src="https://ui-avatars.com/api/?name=User&background=FF4B1F&color=fff" alt="User Avatar" class="user-avatar" id="userAvatar">
+                <span class="user-name" id="userName">User</span>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Sign In Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <h2>Welcome Back!</h2>
+            
+            <div id="signinOptions">
+                <!-- Google Sign-In Button (Auto-generated by Google) -->
+                <div id="googleSignInDiv"></div>
+
+                <div class="divider">
+                    <span>OR</span>
+                </div>
+
+                <div class="signin-option">
+                    <button class="phone-btn" id="phoneSignInBtn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
+                        </svg>
+                        Continue with Phone Number
+                    </button>
+                </div>
+
+                <div class="phone-input-section" id="phoneInputSection">
+                    <div id="recaptcha-container"></div>
+                    <div class="phone-input-group">
+                        <label for="phoneNumber">Enter Phone Number</label>
+                        <input type="tel" id="phoneNumber" placeholder="+1 555 123 4567">
+                    </div>
+                    <button class="submit-phone-btn" id="sendCode">Send Verification Code</button>
+                    
+                    <div class="phone-input-group" id="verifySection" style="display: none;">
+                        <label for="verificationCode">Enter 6-Digit Code</label>
+                        <input type="text" id="verificationCode" placeholder="123456" maxlength="6">
+                        <button class="submit-phone-btn" id="verifyCode" style="margin-top: 15px;">Verify Code</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rest of the page content (Hero, Stats, Map, etc.) -->
+    <section class="hero" id="home">
+        <div class="hero-content">
+            <h1>Share The Road, Share The Vibe</h1>
+            <p>Connect with fellow travelers, split costs, and make every journey an adventure. StreetRavs brings people together on the road.</p>
+            
+            <div class="hero-features">
+                <div class="feature-badge">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <span>Verified Drivers</span>
+                </div>
+                <div class="feature-badge">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                    </svg>
+                    <span>Real-time GPS</span>
+                </div>
+            </div>
+
+            <div class="hero-actions">
+                <button class="primary-btn" onclick="scrollToMap()">Find A Ride</button>
+                <button class="secondary-btn" onclick="showMessage()">Offer A Ride</button>
+            </div>
+        </div>
+
+        <div class="booking-form">
+            <h2>Book Your Ride Now</h2>
+            <form id="rideForm">
+                <div class="form-group">
+                    <label for="from">From</label>
+                    <input type="text" id="from" placeholder="Enter pickup location" required>
+                </div>
+                <div class="form-group">
+                    <label for="to">To</label>
+                    <input type="text" id="to" placeholder="Enter destination" required>
+                </div>
+                <div class="date-time-group">
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="time">Time</label>
+                        <input type="time" id="time" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="passengers">Passengers</label>
+                    <select id="passengers" required>
+                        <option value="">Select passengers</option>
+                        <option value="1">1 Passenger</option>
+                        <option value="2">2 Passengers</option>
+                        <option value="3">3 Passengers</option>
+                        <option value="4">4+ Passengers</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-btn">Search Rides</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="stat-card">
+            <div class="stat-number">50K+</div>
+            <div class="stat-label">Active Users</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">1M+</div>
+            <div class="stat-label">Rides Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">4.9★</div>
+            <div class="stat-label">Average Rating</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">200+</div>
+            <div class="stat-label">Cities Covered</div>
+        </div>
+    </section>
+
+    <section class="map-section" id="rides">
+        <h2>Live Routes & Rides</h2>
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </section>
+
+    <section class="how-it-works" id="how">
+        <h2>How It Works</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">01</div>
+                <h3>Search Your Route</h3>
+                <p>Enter your departure and destination points. Our smart system finds the best matches instantly.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">02</div>
+                <h3>Choose Your Ride</h3>
+                <p>Browse verified drivers, check ratings, and pick the ride that fits your schedule and budget.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">03</div>
+                <h3>Book & Connect</h3>
+                <p>Confirm your seat, chat with your driver, and get ready to hit the road together.</p>
+            </div>
+            <div class="step">
+                <div class="step-number">04</div>
+                <h3>Enjoy The Journey</h3>
+                <p>Track your ride in real-time, share the experience, and arrive at your destination safely.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer id="contact">
+        <div class="footer-content">
+            <div class="footer-about">
+                <h3>StreetRavs</h3>
+                <p>Revolutionizing the way people share rides and connect on the road. Making travel affordable, sustainable, and social.</p>
+            </div>
+            <div class="footer-links">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Careers</a></li>
+                    <li><a href="#">Press</a></li>
+                    <li><a href="#">Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Safety</a></li>
+                    <li><a href="#">Terms</a></li>
+                    <li><a href="#">Privacy</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Connect</h4>
+                <ul>
+                    <li><a href="#">Facebook</a></li>
+                    <li><a href="#">Twitter</a></li>
+                    <li><a href="#">Instagram</a></li>
+                    <li><a href="#">LinkedIn</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 StreetRavs. All rights reserved. Share the road, share the story.</p>
+        </div>
+    </footer>
+
+    <div class="success-message" id="successMessage">
+        <h4>🎉 Success!</h4>
+        <p id="successText">Your search has been submitted!</p>
+    </div>
+
+    <script>
+        // ========================================
+        // 🔧 CONFIGURATION - ADD YOUR API KEYS HERE
+        // ========================================
+        
+        const CONFIG = {
+            // Firebase Configuration (for Phone Authentication)
+            // Get from: https://console.firebase.google.com/
+            firebase: {
+                apiKey: "YOUR_FIREBASE_API_KEY",
+                authDomain: "YOUR_PROJECT.firebaseapp.com",
+                projectId: "YOUR_PROJECT_ID",
+                storageBucket: "YOUR_PROJECT.appspot.com",
+                messagingSenderId: "YOUR_SENDER_ID",
+                appId: "YOUR_APP_ID"
+            },
+            
+            // Google OAuth Client ID (for Google Sign-In)
+            // Get from: https://console.cloud.google.com/apis/credentials
+            googleClientId: "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+            
+            // Google Maps API Key
+            // Get from: https://console.cloud.google.com/google/maps-apis
+            googleMapsApiKey: "YOUR_GOOGLE_MAPS_API_KEY"
+        };
+
+        // ========================================
+        // FIREBASE PHONE AUTHENTICATION
+        // ========================================
+        
+        let confirmationResult;
+        let recaptchaVerifier;
+        
+        // Initialize Firebase only if config is provided
+        if (CONFIG.firebase.apiKey !== "YOUR_FIREBASE_API_KEY") {
+            firebase.initializeApp(CONFIG.firebase);
+            
+            // Initialize reCAPTCHA
+            window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+                'size': 'normal',
+                'callback': (response) => {
+                    console.log("reCAPTCHA verified");
+                }
+            });
+        }
+
+        // ========================================
+        // GOOGLE SIGN-IN
+        // ========================================
+        
+        function handleCredentialResponse(response) {
+            // Decode JWT token
+            const responsePayload = JSON.parse(atob(response.credential.split('.')[1]));
+            
+            const userName = responsePayload.name;
+            const userEmail = responsePayload.email;
+            const userPicture = responsePayload.picture;
+            
+            // Store user data
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('userName', userName);
+            localStorage.setItem('userEmail', userEmail);
+            localStorage.setItem('userPicture', userPicture);
+            localStorage.setItem('loginMethod', 'google');
+            
+            // Update UI
+            signInUser(userName, userPicture);
+            showSuccessMessage('✅ Successfully signed in with Google!');
+            modal.classList.remove('active');
+        }
+
+        // Initialize Google Sign-In
+        window.onload = function() {
+            if (CONFIG.googleClientId !== "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com") {
+                google.accounts.id.initialize({
+                    client_id: CONFIG.googleClientId,
+                    callback: handleCredentialResponse
+                });
+                
+                google.accounts.id.renderButton(
+                    document.getElementById("googleSignInDiv"),
+                    { 
+                        theme: "filled_blue", 
+                        size: "large",
+                        width: 350,
+                        text: "continue_with"
+                    }
+                );
+            }
+            
+            // Initialize Google Maps
+            if (CONFIG.googleMapsApiKey !== "YOUR_GOOGLE_MAPS_API_KEY") {
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${CONFIG.googleMapsApiKey}&libraries=places&callback=initMap`;
+                script.async = true;
+                script.defer = true;
+                document.head.appendChild(script);
+            } else {
+                // Fallback to embedded map
+                document.getElementById('map').innerHTML = `
+                    <iframe 
+                        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d387193.30591910525!2d-74.25986548248684!3d40.69714941932609!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c24fa5d33f083b%3A0xc80b8f06e177fe62!2sNew%20York%2C%20NY%2C%20USA!5e0!3m2!1sen!2s!4v1234567890123!5m2!1sen!2s" 
+                        width="100%" 
+                        height="100%" 
+                        style="border:0;" 
+                        allowfullscreen="" 
+                        loading="lazy">
+                    </iframe>
+                `;
+            }
+            
+            // Check if already logged in
+            if (localStorage.getItem('isLoggedIn') === 'true') {
+                const userName = localStorage.getItem('userName');
+                const userPicture = localStorage.getItem('userPicture') || 
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=FF4B1F&color=fff`;
+                signInUser(userName, userPicture);
+            }
+            
+            // Set form defaults
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').setAttribute('min', today);
+            document.getElementById('date').value = today;
+            
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('time').value = `${hours}:${minutes}`;
+        };
+
+        // ========================================
+        // GOOGLE MAPS INITIALIZATION
+        // ========================================
+        
+        function initMap() {
+            const map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 40.7128, lng: -74.0060 },
+                zoom: 12,
+                styles: [
+                    { featureType: "all", elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#FF4B1F" }] }
+                ]
+            });
+
+            // Add sample ride markers
+            const rides = [
+                { lat: 40.7589, lng: -73.9851, title: "Times Square → JFK", price: "$25" },
+                { lat: 40.7061, lng: -74.0087, title: "Wall St → Newark", price: "$18" },
+                { lat: 40.7489, lng: -73.9680, title: "Grand Central → LaGuardia", price: "$22" }
+            ];
+
+            rides.forEach(ride => {
+                const marker = new google.maps.Marker({
+                    position: { lat: ride.lat, lng: ride.lng },
+                    map: map,
+                    title: ride.title,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: '#FF4B1F',
+                        fillOpacity: 1,
+                        strokeColor: '#FFE259',
+                        strokeWeight: 3
+                    }
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `<div style="color: #1A1A1A; padding: 10px;">
+                        <h3 style="margin: 0 0 8px 0; font-family: 'Bebas Neue'; font-size: 18px;">${ride.title}</h3>
+                        <p style="margin: 0; font-weight: bold; color: #FF4B1F;">${ride.price}</p>
+                        <button style="margin-top: 10px; padding: 8px 16px; background: #FF4B1F; color: white; border: none; border-radius: 5px; cursor: pointer;">Book Now</button>
+                    </div>`
+                });
+
+                marker.addListener('click', () => infoWindow.open(map, marker));
+            });
+        }
+
+        // ========================================
+        // PHONE AUTHENTICATION HANDLERS
+        // ========================================
+        
+        const phoneSignInBtn = document.getElementById('phoneSignInBtn');
+        const phoneInputSection = document.getElementById('phoneInputSection');
+        const sendCodeBtn = document.getElementById('sendCode');
+        const verifyCodeBtn = document.getElementById('verifyCode');
+        const phoneNumberInput = document.getElementById('phoneNumber');
+        const verificationCodeInput = document.getElementById('verificationCode');
+
+        phoneSignInBtn.addEventListener('click', () => {
+            phoneInputSection.classList.add('active');
+            if (window.recaptchaVerifier && !window.recaptchaVerifier.rendered) {
+                window.recaptchaVerifier.render();
+            }
+        });
+
+        sendCodeBtn.addEventListener('click', () => {
+            const phoneNumber = phoneNumberInput.value.trim();
+            
+            if (!phoneNumber || phoneNumber.length < 10) {
+                alert('Please enter a valid phone number');
+                return;
+            }
+            
+            if (CONFIG.firebase.apiKey === "YOUR_FIREBASE_API_KEY") {
+                // Demo mode
+                document.getElementById('verifySection').style.display = 'block';
+                showSuccessMessage(`📱 Demo: Code sent to ${phoneNumber}`);
+                return;
+            }
+
+            // Real Firebase phone auth
+            const appVerifier = window.recaptchaVerifier;
+            firebase.auth().signInWithPhoneNumber(phoneNumber, appVerifier)
+                .then((result) => {
+                    confirmationResult = result;
+                    document.getElementById('verifySection').style.display = 'block';
+                    showSuccessMessage('📱 Verification code sent!');
+                })
+                .catch((error) => {
+                    console.error("Error sending code:", error);
+                    alert('Error sending code: ' + error.message);
+                });
+        });
+
+        verifyCodeBtn.addEventListener('click', () => {
+            const code = verificationCodeInput.value.trim();
+            
+            if (!code || code.length !== 6) {
+                alert('Please enter the 6-digit code');
+                return;
+            }
+            
+            if (CONFIG.firebase.apiKey === "YOUR_FIREBASE_API_KEY") {
+                // Demo mode
+                const phoneNumber = phoneNumberInput.value;
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userName', 'Phone User');
+                localStorage.setItem('userPhone', phoneNumber);
+                localStorage.setItem('loginMethod', 'phone');
+                
+                signInUser('Phone User', 'https://ui-avatars.com/api/?name=Phone+User&background=FF4B1F&color=fff');
+                showSuccessMessage('✅ Successfully verified!');
+                modal.classList.remove('active');
+                return;
+            }
+
+            // Real verification
+            confirmationResult.confirm(code)
+                .then((result) => {
+                    const user = result.user;
+                    const userName = user.displayName || 'Phone User';
+                    
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('userName', userName);
+                    localStorage.setItem('userPhone', user.phoneNumber);
+                    localStorage.setItem('loginMethod', 'phone');
+                    
+                    signInUser(userName, user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(userName) + '&background=FF4B1F&color=fff');
+                    showSuccessMessage('✅ Successfully verified!');
+                    modal.classList.remove('active');
+                })
+                .catch((error) => {
+                    console.error("Error verifying code:", error);
+                    alert('Invalid code. Please try again.');
+                });
+        });
+
+        // ========================================
+        // UI HANDLERS
+        // ========================================
+        
+        const modal = document.getElementById('modalOverlay');
+        const signInBtn = document.getElementById('signInBtn');
+        const modalClose = document.getElementById('modalClose');
+        const userProfile = document.getElementById('userProfile');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        signInBtn.addEventListener('click', () => modal.classList.add('active'));
+        modalClose.addEventListener('click', () => {
+            modal.classList.remove('active');
+            phoneInputSection.classList.remove('active');
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+                phoneInputSection.classList.remove('active');
+            }
+        });
+
+        function signInUser(name, picture) {
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userAvatar').src = picture;
+            signInBtn.style.display = 'none';
+            userProfile.classList.add('active');
+        }
+
+        logoutBtn.addEventListener('click', () => {
+            localStorage.clear();
+            if (firebase.auth && firebase.auth().currentUser) {
+                firebase.auth().signOut();
+            }
+            signInBtn.style.display = 'block';
+            userProfile.classList.remove('active');
+            showSuccessMessage('👋 Successfully logged out!');
+        });
+
+        function showSuccessMessage(message) {
+            const successMsg = document.getElementById('successMessage');
+            const successText = document.getElementById('successText');
+            successText.textContent = message;
+            successMsg.classList.add('show');
+            setTimeout(() => successMsg.classList.remove('show'), 4000);
+        }
+
+        document.getElementById('rideForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const from = document.getElementById('from').value;
+            const to = document.getElementById('to').value;
+            showSuccessMessage(`🚗 Found 5 rides from ${from} to ${to}!`);
+            document.getElementById('rides').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        function scrollToMap() {
+            document.getElementById('rides').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showMessage() {
+            showSuccessMessage('🚗 Offer a Ride feature coming soon!');
+        }
+    </script>
+</body>
+</html>
